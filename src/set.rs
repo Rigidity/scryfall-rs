@@ -1,7 +1,7 @@
 //! A Set object represents a group of related Magic cards. All Card objects on
 //! Scryfall belong to exactly one set.
 //!
-//! Due to Magic’s long and complicated history, Scryfall includes many
+//! Due to Magic's long and complicated history, Scryfall includes many
 //! un-official sets as a way to group promotional or outlier cards together.
 //! Such sets will likely have a code that begins with `p` or `t`, such as
 //! `pcel` or `tori`.
@@ -37,7 +37,7 @@ pub struct Set {
     /// code.
     pub mtgo_code: Option<String>,
 
-    /// This set’s ID on TCGplayer’s API, also known as the groupId.
+    /// This set's ID on TCGplayer's API, also known as the groupId.
     pub tcgplayer_id: Option<u64>,
 
     /// The English name of the set.
@@ -63,7 +63,7 @@ pub struct Set {
     /// The number of cards in this set.
     pub card_count: usize,
 
-    /// The denominator for the set’s printed collector numbers.
+    /// The denominator for the set's printed collector numbers.
     pub printed_size: Option<usize>,
 
     /// True if this set was only released in a video game.
@@ -75,14 +75,14 @@ pub struct Set {
     /// True if this set contains only nonfoil cards.
     pub nonfoil_only: bool,
 
-    /// A link to this set’s permapage on Scryfall’s website.
+    /// A link to this set's permapage on Scryfall's website.
     pub scryfall_uri: String,
 
-    /// A link to this set object on Scryfall’s API.
+    /// A link to this set object on Scryfall's API.
     pub uri: Uri<Set>,
 
-    /// A URI to an SVG file for this set’s icon on Scryfall’s CDN. Hotlinking
-    /// this image isn’t recommended, because it may change slightly over time.
+    /// A URI to an SVG file for this set's icon on Scryfall's CDN. Hotlinking
+    /// this image isn't recommended, because it may change slightly over time.
     /// You should download it and use it locally for your particular user
     /// interface needs.
     pub icon_svg_uri: String,
@@ -123,7 +123,7 @@ impl Set {
 
     /// Returns a `Set` with the given `tcgplayer_id`.
     ///
-    /// Also known as the `groupId` on [TCGplayer’s API](https://docs.tcgplayer.com/docs).
+    /// Also known as the `groupId` on [TCGplayer's API](https://docs.tcgplayer.com/docs).
     ///
     /// # Examples
     ///

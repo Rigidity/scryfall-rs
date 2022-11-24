@@ -60,7 +60,14 @@ impl<T: DeserializeOwned> Uri<T> {
     /// # use scryfall::uri::Uri;
     /// let uri =
     ///     Uri::<Card>::try_from("https://api.scryfall.com/cards/named?exact=Lightning+Bolt").unwrap();
-    /// let bolt = uri.fetch().unwrap();
+    /// let bolt = uri
+    ///     .fetch()
+    ///     .ok()
+    ///     .and_then(|c| match c {
+    ///         Card::OracleCard(c) => Some(c),
+    ///         _ => None,
+    ///     })
+    ///     .unwrap();
     /// assert_eq!(bolt.mana_cost, Some("{R}".to_string()));
     /// ```
     pub fn fetch(&self) -> crate::Result<T> {
@@ -96,13 +103,15 @@ impl<T: DeserializeOwned> Uri<List<T>> {
     /// # use scryfall::list::List;
     /// # use scryfall::uri::Uri;
     /// let uri = Uri::<List<Card>>::try_from("https://api.scryfall.com/cards/search?q=zurgo").unwrap();
-    /// assert!(
-    ///     uri.fetch_iter()
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .find(|c| c.name.contains("Bellstriker"))
-    ///         .is_some()
-    /// );
+    /// assert!(uri
+    ///     .fetch_iter()
+    ///     .unwrap()
+    ///     .filter_map(|c| match c {
+    ///         Card::OracleCard(c) => Some(c),
+    ///         _ => None,
+    ///     })
+    ///     .find(|c| c.name.contains("Bellstriker"))
+    ///     .is_some());
     /// ```
     pub fn fetch_iter(&self) -> crate::Result<ListIter<T>> {
         Ok(self.fetch()?.into_iter())

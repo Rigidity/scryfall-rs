@@ -17,10 +17,10 @@ pub struct CardFace {
     /// not have this field yet.
     pub artist: Option<String>,
 
-    /// The colors in this face’s color indicator, if any.
+    /// The colors in this face's color indicator, if any.
     pub color_indicator: Option<Vec<Color>>,
 
-    /// This face’s colors, if the game defines colors for the individual face
+    /// This face's colors, if the game defines colors for the individual face
     /// of this card.
     pub colors: Option<Vec<Color>>,
 
@@ -36,7 +36,7 @@ pub struct CardFace {
     /// property will be part of the parent object instead.
     pub image_uris: Option<HashMap<String, String>>,
 
-    /// This face’s loyalty, if any.
+    /// This face's loyalty, if any.
     pub loyalty: Option<String>,
 
     /// The mana cost for this face. This value will be any empty string "" if
@@ -50,7 +50,7 @@ pub struct CardFace {
     /// The Oracle text for this face, if any.
     pub oracle_text: Option<String>,
 
-    /// This face’s power, if any. Note that some cards have powers that are not
+    /// This face's power, if any. Note that some cards have powers that are not
     /// numeric, such as `*`.
     pub power: Option<String>,
 

@@ -63,12 +63,10 @@ impl Ruling {
     /// # Examples
     /// ```rust
     /// use scryfall::ruling::Ruling;
-    /// assert!(
-    ///     Ruling::multiverse_id(3255)
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .any(|r| r.comment.ends_with("Yes, this is a bit weird."))
-    /// );
+    /// assert!(Ruling::multiverse_id(3255)
+    ///     .unwrap()
+    ///     .map(Result::unwrap)
+    ///     .any(|r| r.comment.ends_with("Yes, this is a bit weird.")));
     /// ```
     pub fn multiverse_id(id: usize) -> crate::Result<ListIter<Self>> {
         Uri::from(
@@ -81,18 +79,16 @@ impl Ruling {
     }
 
     /// Returns rulings for a card with the given MTGO ID (also known as the
-    /// Catalog ID). The ID can either be the card’s `mtgo_id` or its
+    /// Catalog ID). The ID can either be the card's `mtgo_id` or its
     /// `mtgo_foil_id`.
     ///
     /// # Examples
     /// ```rust
     /// use scryfall::ruling::Ruling;
-    /// assert!(
-    ///     Ruling::mtgo_id(57934)
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .any(|r| r.comment.ends_with("You read the whole contract, right?"))
-    /// );
+    /// assert!(Ruling::mtgo_id(57934)
+    ///     .unwrap()
+    ///     .map(Result::unwrap)
+    ///     .any(|r| r.comment.ends_with("You read the whole contract, right?")));
     /// ```
     pub fn mtgo_id(id: usize) -> crate::Result<ListIter<Self>> {
         Uri::from(
@@ -108,15 +104,13 @@ impl Ruling {
     ///
     /// ```rust
     /// use scryfall::ruling::Ruling;
-    /// assert!(
-    ///     Ruling::arena_id(67462)
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .any(|r| {
-    ///             r.comment
-    ///                 .starts_with("Once a chapter ability has triggered,")
-    ///         })
-    /// );
+    /// assert!(Ruling::arena_id(67462)
+    ///     .unwrap()
+    ///     .map(Result::unwrap)
+    ///     .any(|r| {
+    ///         r.comment
+    ///             .starts_with("Once a chapter ability has triggered,")
+    ///     }));
     /// ```
     pub fn arena_id(id: usize) -> crate::Result<ListIter<Self>> {
         Uri::from(
@@ -134,12 +128,10 @@ impl Ruling {
     /// # Examples
     /// ```rust
     /// use scryfall::ruling::Ruling;
-    /// assert!(
-    ///     Ruling::set_and_number("bfz", 17)
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .any(|r| r.comment == "Yes, your opponent can’t even. We know.")
-    /// );
+    /// assert!(Ruling::set_and_number("bfz", 17)
+    ///     .unwrap()
+    ///     .map(Result::unwrap)
+    ///     .any(|r| r.comment == "Yes, your opponent can't even. We know."));
     /// ```
     pub fn set_and_number(set: &str, number: u32) -> crate::Result<ListIter<Self>> {
         Uri::from(

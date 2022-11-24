@@ -16,7 +16,7 @@ use crate::util::CATALOG_URL;
 /// objects.
 #[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Catalog {
-    /// A link to the current catalog on Scryfall’s API.
+    /// A link to the current catalog on Scryfall's API.
     pub uri: Uri<Catalog>,
 
     /// The number of items in the `data` array.
@@ -27,7 +27,7 @@ pub struct Catalog {
 }
 
 impl Catalog {
-    /// Returns a list of all nontoken English card names in Scryfall’s
+    /// Returns a list of all nontoken English card names in Scryfall's
     /// database. Values are updated as soon as a new card is entered for
     /// spoiler seasons.
     ///
@@ -40,8 +40,8 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("card-names")?).fetch()
     }
 
-    /// Returns a list of all canonical artist names in Scryfall’s database.
-    /// This catalog won’t include duplicate, misspelled, or funny names for
+    /// Returns a list of all canonical artist names in Scryfall's database.
+    /// This catalog won't include duplicate, misspelled, or funny names for
     /// artists. Values are updated as soon as a new card is entered for
     /// spoiler seasons.
     ///
@@ -56,7 +56,7 @@ impl Catalog {
 
     /// Returns a Catalog of all English words, of length 2 or more, that could
     /// appear in a card name. Values are drawn from cards currently in
-    /// Scryfall’s database. Values are updated as soon as a new card is
+    /// Scryfall's database. Values are updated as soon as a new card is
     /// entered for spoiler seasons.
     ///
     /// # Examples
@@ -68,7 +68,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("word-bank")?).fetch()
     }
 
-    /// Returns a Catalog of all creature types in Scryfall’s database. Values
+    /// Returns a Catalog of all creature types in Scryfall's database. Values
     /// are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -80,7 +80,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("creature-types")?).fetch()
     }
 
-    /// Returns a Catalog of all Planeswalker types in Scryfall’s database.
+    /// Returns a Catalog of all Planeswalker types in Scryfall's database.
     /// Values are updated as soon as a new card is entered for spoiler
     /// seasons.
     ///
@@ -93,7 +93,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("planeswalker-types")?).fetch()
     }
 
-    /// Returns a Catalog of all Land types in Scryfall’s database. Values are
+    /// Returns a Catalog of all Land types in Scryfall's database. Values are
     /// updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -105,7 +105,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("land-types")?).fetch()
     }
 
-    /// Returns a Catalog of all artifact types in Scryfall’s database. Values
+    /// Returns a Catalog of all artifact types in Scryfall's database. Values
     /// are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -117,7 +117,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("artifact-types")?).fetch()
     }
 
-    /// Returns a Catalog of all enchantment types in Scryfall’s database.
+    /// Returns a Catalog of all enchantment types in Scryfall's database.
     /// Values are updated as soon as a new card is entered for spoiler
     /// seasons.
     ///
@@ -130,7 +130,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("enchantment-types")?).fetch()
     }
 
-    /// Returns a Catalog of all spell types in Scryfall’s database. Values are
+    /// Returns a Catalog of all spell types in Scryfall's database. Values are
     /// updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -142,8 +142,8 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("spell-types")?).fetch()
     }
 
-    /// Returns a Catalog of all possible values for a creature or vehicle’s
-    /// power in Scryfall’s database. Values are updated as soon as a new
+    /// Returns a Catalog of all possible values for a creature or vehicle's
+    /// power in Scryfall's database. Values are updated as soon as a new
     /// card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -155,8 +155,8 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("powers")?).fetch()
     }
 
-    /// Returns a Catalog of all possible values for a creature or vehicle’s
-    /// toughness in Scryfall’s database. Values are updated as soon as a
+    /// Returns a Catalog of all possible values for a creature or vehicle's
+    /// toughness in Scryfall's database. Values are updated as soon as a
     /// new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -168,8 +168,8 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("toughnesses")?).fetch()
     }
 
-    /// Returns a Catalog of all possible values for a Planeswalker’s loyalty in
-    /// Scryfall’s database. Values are updated as soon as a new card is
+    /// Returns a Catalog of all possible values for a Planeswalker's loyalty in
+    /// Scryfall's database. Values are updated as soon as a new card is
     /// entered for spoiler seasons.
     ///
     /// # Examples
@@ -181,7 +181,7 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("loyalties")?).fetch()
     }
 
-    /// Returns a Catalog of all card watermarks in Scryfall’s database. Values
+    /// Returns a Catalog of all card watermarks in Scryfall's database. Values
     /// are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
@@ -193,58 +193,52 @@ impl Catalog {
         Uri::from(CATALOG_URL.join("watermarks")?).fetch()
     }
 
-    /// Returns a Catalog of all keyword abilities in Scryfall’s database.
+    /// Returns a Catalog of all keyword abilities in Scryfall's database.
     /// Values are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
     /// ```rust
     /// # use scryfall::catalog::Catalog;
-    /// assert!(
-    ///     Catalog::keyword_abilities()
-    ///         .unwrap()
-    ///         .data
-    ///         .iter()
-    ///         .find(|a| a.as_str() == "Haste")
-    ///         .is_some()
-    /// );
+    /// assert!(Catalog::keyword_abilities()
+    ///     .unwrap()
+    ///     .data
+    ///     .iter()
+    ///     .find(|a| a.as_str() == "Haste")
+    ///     .is_some());
     /// ```
     pub fn keyword_abilities() -> crate::Result<Self> {
         Uri::from(CATALOG_URL.join("keyword-abilities")?).fetch()
     }
 
-    /// Returns a Catalog of all keyword actions in Scryfall’s database. Values
+    /// Returns a Catalog of all keyword actions in Scryfall's database. Values
     /// are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
     /// ```rust
     /// # use scryfall::catalog::Catalog;
-    /// assert!(
-    ///     Catalog::keyword_actions()
-    ///         .unwrap()
-    ///         .data
-    ///         .iter()
-    ///         .find(|a| a.as_str() == "Scry")
-    ///         .is_some()
-    /// );
+    /// assert!(Catalog::keyword_actions()
+    ///     .unwrap()
+    ///     .data
+    ///     .iter()
+    ///     .find(|a| a.as_str() == "Scry")
+    ///     .is_some());
     /// ```
     pub fn keyword_actions() -> crate::Result<Self> {
         Uri::from(CATALOG_URL.join("keyword-actions")?).fetch()
     }
 
-    /// Returns a Catalog of all ability words in Scryfall’s database. Values
+    /// Returns a Catalog of all ability words in Scryfall's database. Values
     /// are updated as soon as a new card is entered for spoiler seasons.
     ///
     /// # Examples
     /// ```rust
     /// # use scryfall::catalog::Catalog;
-    /// assert!(
-    ///     Catalog::ability_words()
-    ///         .unwrap()
-    ///         .data
-    ///         .iter()
-    ///         .find(|a| a.as_str() == "Landfall")
-    ///         .is_some()
-    /// );
+    /// assert!(Catalog::ability_words()
+    ///     .unwrap()
+    ///     .data
+    ///     .iter()
+    ///     .find(|a| a.as_str() == "Landfall")
+    ///     .is_some());
     /// ```
     pub fn ability_words() -> crate::Result<Self> {
         Uri::from(CATALOG_URL.join("ability-words")?).fetch()

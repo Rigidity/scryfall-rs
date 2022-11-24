@@ -187,7 +187,10 @@ mod tests {
             .unique(UniqueStrategy::Prints)
             .search()
             .unwrap()
-            .map(|c| c.unwrap())
+            .filter_map(|card| match card {
+                Ok(Card::OracleCard(card)) => Some(card),
+                _ => None,
+            })
             .collect::<Vec<_>>();
 
         assert!(cards.len() > 1);
@@ -198,24 +201,46 @@ mod tests {
     }
 
     #[test]
+    fn reversible_card_search() {
+        let cards = SearchOptions::new()
+            .query(name("Stitch in Time // Stitch in Time"))
+            .search()
+            .unwrap()
+            .filter_map(|card| match card {
+                Ok(Card::ReversibleCard(card)) => Some(card),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert!(cards.len() == 1);
+
+        for card in cards {
+            assert_eq!(card.name, "Stitch in Time // Stitch in Time")
+        }
+    }
+
+    #[test]
     fn random_works_with_search_options() {
         // `SearchOptions` can set more query params than the "cards/random" API method
         // accepts. Scryfall should ignore these and return a random card.
-        assert!(
-            SearchOptions::new()
-                .query(keyword("storm"))
-                .unique(UniqueStrategy::Art)
-                .sort(SortOrder::Usd, SortDirection::Ascending)
-                .extras(true)
-                .multilingual(true)
-                .variations(true)
-                .random()
-                .unwrap()
-                .oracle_text
-                .unwrap()
-                .to_lowercase()
-                .contains("storm")
-        );
+        assert!(SearchOptions::new()
+            .query(keyword("storm"))
+            .unique(UniqueStrategy::Art)
+            .sort(SortOrder::Usd, SortDirection::Ascending)
+            .extras(true)
+            .multilingual(true)
+            .variations(true)
+            .random()
+            .ok()
+            .and_then(|card| match card {
+                Card::OracleCard(card) => Some(card),
+                _ => None,
+            })
+            .unwrap()
+            .oracle_text
+            .unwrap()
+            .to_lowercase()
+            .contains("storm"));
     }
 
     #[test]
@@ -234,6 +259,11 @@ mod tests {
                 .unwrap()
                 .next()
                 .unwrap()
+                .ok()
+                .and_then(|card| match card {
+                    Card::OracleCard(card) => Some(card),
+                    _ => None,
+                })
                 .unwrap()
                 .set
                 .to_string(),
@@ -250,16 +280,15 @@ mod tests {
             .query(rarity(gt(Rarity::Mythic)))
             .search()
             .unwrap()
+            .filter_map(|card| match card {
+                Ok(Card::OracleCard(card)) => Some(card),
+                _ => None,
+            })
             .collect::<Vec<_>>();
 
         assert!(cards.len() >= 9, "Couldn't find the Power Nine from VMA.");
 
-        assert!(
-            cards
-                .into_iter()
-                .map(|c| c.unwrap())
-                .all(|c| c.rarity > Rarity::Mythic)
-        );
+        assert!(cards.into_iter().all(|c| c.rarity > Rarity::Mythic));
     }
 
     #[test]
@@ -269,6 +298,11 @@ mod tests {
             pow_tou(eq(NumProperty::Cmc)),
             not(CardIs::Funny),
         ]))
+        .ok()
+        .and_then(|card| match card {
+            Card::OracleCard(card) => Some(card),
+            _ => None,
+        })
         .unwrap();
 
         let power = card
@@ -285,7 +319,13 @@ mod tests {
 
         let card = Card::search(pow_tou(gt(NumProperty::Year)))
             .unwrap()
-            .map(|c| c.unwrap())
+            .map(|card| {
+                match card {
+                    Ok(Card::OracleCard(card)) => Some(card),
+                    _ => None,
+                }
+                .unwrap()
+            })
             .collect::<Vec<_>>();
 
         assert!(card.into_iter().any(|c| &c.name == "Infinity Elemental"));

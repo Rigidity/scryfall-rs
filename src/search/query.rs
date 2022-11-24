@@ -28,8 +28,11 @@ use crate::search::Search;
 ///     CardIs::OddCmc.into(),
 /// ])
 /// .search()?
-/// .next()
-/// .unwrap()?;
+/// .filter_map(|c| match c {
+///     Card::OracleCard(c) => Some(c),
+///     _ => None,
+/// })
+/// .next();
 /// assert_eq!(one_odd_eldrazi.name, "Void Winnower");
 /// # Ok(())
 /// # }
@@ -139,6 +142,7 @@ pub fn not(query: impl Into<Query>) -> Query {
 mod tests {
     use super::*;
     use crate::search::prelude::*;
+    use crate::Card;
 
     #[test]
     fn even_power() -> crate::Result<()> {
@@ -149,15 +153,17 @@ mod tests {
             .query(normal_creatures.clone())
             .sort(SortOrder::Power, SortDirection::Descending)
             .search()?
+            .filter_map(|card| match card {
+                Ok(Card::OracleCard(card)) => Some(card),
+                _ => None,
+            })
             .next()
-            .unwrap()?
+            .unwrap()
             .power
             .and_then(|pow| pow.parse().ok())
             .unwrap_or(0);
 
-        let query = normal_creatures.and(Query::Or(
-            (0..=highest_power).map(power).collect(),
-        ));
+        let query = normal_creatures.and(Query::Or((0..=highest_power).map(power).collect()));
 
         // There are at least 1000 cards with even power.
         assert!(query.search().unwrap().size_hint().0 > 1000);

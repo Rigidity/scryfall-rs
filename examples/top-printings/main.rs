@@ -1,5 +1,6 @@
 use scryfall::card::Game;
 use scryfall::search::prelude::*;
+use scryfall::Card;
 
 fn main() -> scryfall::Result<()> {
     let card_name = std::env::args().nth(1).expect("expected a card name param");
@@ -14,7 +15,10 @@ fn main() -> scryfall::Result<()> {
 
     let cards = search_options
         .search()?
-        .filter_map(|card| card.ok())
+        .filter_map(|card| match card {
+            Ok(Card::OracleCard(card)) => Some(card),
+            _ => None,
+        })
         .filter(|card| {
             card.prices.usd.is_some() || (!card.nonfoil && card.prices.usd_foil.is_some())
         });

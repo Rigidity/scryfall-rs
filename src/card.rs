@@ -20,7 +20,9 @@ mod related_card;
 use std::collections::hash_map::HashMap;
 
 use chrono::NaiveDate;
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 use url::Url;
 use uuid::Uuid;
 
@@ -49,8 +51,8 @@ use crate::util::CARDS_URL;
 /// could obtain and add to their collection (with a few minor exceptions).
 ///
 /// ## Card Names
-/// Internally, Scryfall tracks the uniqueness of “Oracle names.” (i.e. names
-/// you can pick when an effect asks you to “choose a card name”). Each unique
+/// Internally, Scryfall tracks the uniqueness of "Oracle names." (i.e. names
+/// you can pick when an effect asks you to "choose a card name"). Each unique
 /// Oracle name is separately available in the card names catalog.
 ///
 /// Note that while most Oracle card names are unique, Scryfall also indexes
@@ -68,58 +70,82 @@ use crate::util::CARDS_URL;
 /// ---
 ///
 /// For more details, see the [official documentation](https://scryfall.com/docs/api/cards).
+#[derive(Serialize, Clone, PartialEq, Debug)]
+#[serde(untagged)]
+pub enum Card {
+    /// For cards with oracle ids.
+    OracleCard(OracleCard),
+
+    /// For cards without oracle ids.
+    ReversibleCard(ReversibleCard),
+}
+
+impl<'de> Deserialize<'de> for Card {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = Value::deserialize(deserializer)?;
+        match OracleCard::deserialize(value.clone()) {
+            Ok(oracle_card) => Ok(Card::OracleCard(oracle_card)),
+            Err(_) => match ReversibleCard::deserialize(value) {
+                Ok(reversible_card) => Ok(Card::ReversibleCard(reversible_card)),
+                Err(inner_error) => Err(D::Error::custom(inner_error)),
+            },
+        }
+    }
+}
+
+/// A normal card with an oracle id and other related information.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
-pub struct Card {
+pub struct OracleCard {
     // region Core Card Fields
     // =======================
-    /// This card’s Arena ID, if any. A large percentage of cards are not
+    /// This card's Arena ID, if any. A large percentage of cards are not
     /// available on Arena and do not have this ID.
     pub arena_id: Option<usize>,
 
-    /// A unique ID for this card in Scryfall’s database.
+    /// A unique ID for this card in Scryfall's database.
     pub id: Uuid,
 
     // TODO(msmorgan): Language enum? https://scryfall.com/docs/api/languages
     /// A language code for this printing.
     pub lang: String,
 
-    /// This card’s Magic Online ID (also known as the Catalog ID), if any. A
+    /// This card's Magic Online ID (also known as the Catalog ID), if any. A
     /// large percentage of cards are not available on Magic Online and do not
     /// have this ID.
     pub mtgo_id: Option<usize>,
 
-    /// This card’s foil Magic Online ID (also known as the Catalog ID), if any.
+    /// This card's foil Magic Online ID (also known as the Catalog ID), if any.
     /// A large percentage of cards are not available on Magic Online and do not
     /// have this ID.
     pub mtgo_foil_id: Option<usize>,
 
-    /// This card’s multiverse IDs on Gatherer, if any, as an array of integers.
+    /// This card's multiverse IDs on Gatherer, if any, as an array of integers.
     /// Note that Scryfall includes many promo cards, tokens, and other esoteric
     /// objects that do not have these identifiers.
     pub multiverse_ids: Option<Vec<usize>>,
 
-    /// This card’s ID on TCGplayer’s API, also known as the `productId`.
+    /// This card's ID on TCGplayer's API, also known as the `productId`.
     pub tcgplayer_id: Option<usize>,
 
-    /// This card’s ID on Cardmarket’s API, also known as the `idProduct`.
+    /// This card's ID on Cardmarket's API, also known as the `idProduct`.
     pub cardmarket_id: Option<usize>,
 
-    /// A unique ID for this card’s oracle identity. This value is consistent
+    /// A unique ID for this card's oracle identity. This value is consistent
     /// across reprinted card editions, and unique among different cards with
     /// the same name (tokens, Unstable variants, etc).
     pub oracle_id: Uuid,
 
     /// A link to where you can begin paginating all re/prints for this card on
-    /// Scryfall’s API.
+    /// Scryfall's API.
     pub prints_search_uri: Uri<List<Card>>,
 
-    /// A link to this card’s rulings list on Scryfall’s API.
+    /// A link to this card's rulings list on Scryfall's API.
     pub rulings_uri: Uri<Vec<Ruling>>,
 
-    /// A link to this card’s permapage on Scryfall’s website.
+    /// A link to this card's permapage on Scryfall's website.
     pub scryfall_uri: Url,
 
-    /// A link to this card object on Scryfall’s API.
+    /// A link to this card object on Scryfall's API.
     pub uri: Uri<Card>,
     // ==========================
     // endregion Core Card Fields
@@ -133,28 +159,28 @@ pub struct Card {
     /// An array of Card Face objects, if this card is multifaced.
     pub card_faces: Option<Vec<CardFace>>,
 
-    /// The card’s converted mana cost. Note that some funny cards have
+    /// The card's converted mana cost. Note that some funny cards have
     /// fractional mana costs.
     pub cmc: f32,
 
-    /// This card’s color identity.
+    /// This card's color identity.
     pub color_identity: Vec<Color>,
 
-    /// The colors in this card’s color indicator, if any. A null value for this
+    /// The colors in this card's color indicator, if any. A null value for this
     /// field indicates the card does not have one.
     pub color_indicator: Option<Vec<Color>>,
 
-    /// This card’s colors, if the overall card has colors defined by the rules.
+    /// This card's colors, if the overall card has colors defined by the rules.
     /// Otherwise the colors will be on the card_faces objects, see below.
     pub colors: Option<Vec<Color>>,
 
-    /// This card’s overall rank/popularity on EDHREC. Not all cards are ranked.
+    /// This card's overall rank/popularity on EDHREC. Not all cards are ranked.
     pub edhrec_rank: Option<usize>,
 
     /// True if this printing exists in a foil version.
     pub foil: bool,
 
-    /// This card’s hand modifier, if it is Vanguard card. This value will
+    /// This card's hand modifier, if it is Vanguard card. This value will
     /// contain a delta, such as -1.
     pub hand_modifier: Option<String>,
 
@@ -162,14 +188,14 @@ pub struct Card {
     /// 'Cumulative upkeep'.
     pub keywords: Vec<String>,
 
-    /// A code for this card’s layout.
+    /// A code for this card's layout.
     pub layout: Layout,
 
     /// An object describing the legality of this card across play formats.
     /// Possible legalities are legal, not_legal, restricted, and banned.
     pub legalities: HashMap<Format, Legality>,
 
-    /// This card’s life modifier, if it is Vanguard card. This value will
+    /// This card's life modifier, if it is Vanguard card. This value will
     /// contain a delta, such as +2.
     pub life_modifier: Option<String>,
 
@@ -196,7 +222,7 @@ pub struct Card {
     /// True if this card is oversized.
     pub oversized: bool,
 
-    /// This card’s power, if any. Note that some cards have powers that are not
+    /// This card's power, if any. Note that some cards have powers that are not
     /// numeric, such as *.
     pub power: Option<String>,
 
@@ -206,7 +232,7 @@ pub struct Card {
     /// True if this card is on the Reserved List.
     pub reserved: bool,
 
-    /// This card’s toughness, if any. Note that some cards have toughnesses
+    /// This card's toughness, if any. Note that some cards have toughnesses
     /// that are not numeric, such as *.
     pub toughness: Option<String>,
 
@@ -224,13 +250,13 @@ pub struct Card {
     /// Whether this card is found in boosters.
     pub booster: bool,
 
-    /// This card’s border color: black, borderless, gold, silver, or white.
+    /// This card's border color: black, borderless, gold, silver, or white.
     pub border_color: BorderColor,
 
     /// The Scryfall ID for the card back design present on this card.
     pub card_back_id: Option<Uuid>,
 
-    /// This card’s collector number. Note that collector numbers can contain
+    /// This card's collector number. Note that collector numbers can contain
     /// non-numeric characters, such as letters or `★`.
     pub collector_number: String,
 
@@ -248,21 +274,21 @@ pub struct Card {
     /// The flavor text, if any.
     pub flavor_text: Option<String>,
 
-    /// This card’s frame effects, if any.
+    /// This card's frame effects, if any.
     #[serde(default)]
     pub frame_effects: Vec<FrameEffect>,
 
-    /// This card’s frame layout.
+    /// This card's frame layout.
     pub frame: Frame,
 
-    /// True if this card’s artwork is larger than normal.
+    /// True if this card's artwork is larger than normal.
     pub full_art: bool,
 
     /// A list of games that this card print is available in, paper, arena,
     /// and/or mtgo.
     pub games: Vec<Game>,
 
-    /// True if this card’s imagery is high resolution.
+    /// True if this card's imagery is high resolution.
     pub highres_image: bool,
 
     /// A unique identifier for the card artwork that remains consistent across
@@ -291,15 +317,15 @@ pub struct Card {
     pub promo: bool,
 
     // TODO(msmorgan): PurchaseUris struct?
-    /// An object providing URIs to this card’s listing on major marketplaces.
+    /// An object providing URIs to this card's listing on major marketplaces.
     #[serde(default)]
     pub purchase_uris: HashMap<String, String>,
 
-    /// This card’s rarity. One of `common`, `uncommon`, `rare`, or `mythic`.
+    /// This card's rarity. One of `common`, `uncommon`, `rare`, or `mythic`.
     pub rarity: Rarity,
 
     // TODO(msmorgan): RelatedUris struct?
-    /// An object providing URIs to this card’s listing on other Magic: The
+    /// An object providing URIs to this card's listing on other Magic: The
     /// Gathering online resources.
     pub related_uris: HashMap<String, String>,
 
@@ -309,23 +335,23 @@ pub struct Card {
     /// True if this card is a reprint.
     pub reprint: bool,
 
-    /// A link to this card’s set on Scryfall’s website.
+    /// A link to this card's set on Scryfall's website.
     pub scryfall_set_uri: String,
 
-    /// This card’s full set name.
+    /// This card's full set name.
     pub set_name: String,
 
-    /// A link to where you can begin paginating this card’s set on the Scryfall
+    /// A link to where you can begin paginating this card's set on the Scryfall
     /// API.
     pub set_search_uri: Uri<List<Card>>,
 
     /// The type of set this printing is in.
     pub set_type: SetType,
 
-    /// A link to this card’s set object on Scryfall’s API.
+    /// A link to this card's set object on Scryfall's API.
     pub set_uri: Uri<Set>,
 
-    /// This card’s set code.
+    /// This card's set code.
     pub set: SetCode,
 
     /// True if this card is a Story Spotlight.
@@ -340,14 +366,257 @@ pub struct Card {
     /// The printing ID of the printing this card is a variation of.
     pub variation_of: Option<Uuid>,
 
-    /// This card’s watermark, if any.
+    /// This card's watermark, if any.
     pub watermark: Option<String>,
 
     /// Information about when and where the card was originally previewed.
     #[serde(default)]
     pub preview: Preview,
-    /* ======================
-     * endregion Print Fields */
+    // ======================
+    // endregion Print Fields
+}
+
+// artist artist_ids booster border_color card_faces
+// collector_number color_identity digital edhrec_rank finishes
+// foil frame frame_effects full_art games highres_image id
+// image_status keywords lang layout legalities
+// multiverse_ids name nonfoil object oversized penny_rank prices
+// prints_search_uri promo rarity related_uris released_at reprint
+// reserved rulings_uri scryfall_set_uri scryfall_uri security_stamp
+// set set_id set_name set_search_uri set_type set_uri story_spotlight
+// tcgplayer_id textless uri variation
+
+/// A reversible card with separate faces. Doesn't contain fields such as the
+/// oracle id.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct ReversibleCard {
+    // region Core Card Fields
+    // =======================
+    /// This card's Arena ID, if any. A large percentage of cards are not
+    /// available on Arena and do not have this ID.
+    pub arena_id: Option<usize>,
+
+    /// A unique ID for this card in Scryfall's database.
+    pub id: Uuid,
+
+    // TODO(msmorgan): Language enum? https://scryfall.com/docs/api/languages
+    /// A language code for this printing.
+    pub lang: String,
+
+    /// This card's Magic Online ID (also known as the Catalog ID), if any. A
+    /// large percentage of cards are not available on Magic Online and do not
+    /// have this ID.
+    pub mtgo_id: Option<usize>,
+
+    /// This card's foil Magic Online ID (also known as the Catalog ID), if any.
+    /// A large percentage of cards are not available on Magic Online and do not
+    /// have this ID.
+    pub mtgo_foil_id: Option<usize>,
+
+    /// This card's multiverse IDs on Gatherer, if any, as an array of integers.
+    /// Note that Scryfall includes many promo cards, tokens, and other esoteric
+    /// objects that do not have these identifiers.
+    pub multiverse_ids: Option<Vec<usize>>,
+
+    /// This card's ID on TCGplayer's API, also known as the `productId`.
+    pub tcgplayer_id: Option<usize>,
+
+    /// This card's ID on Cardmarket's API, also known as the `idProduct`.
+    pub cardmarket_id: Option<usize>,
+
+    /// A link to where you can begin paginating all re/prints for this card on
+    /// Scryfall's API.
+    pub prints_search_uri: Uri<List<Card>>,
+
+    /// A link to this card's rulings list on Scryfall's API.
+    pub rulings_uri: Uri<Vec<Ruling>>,
+
+    /// A link to this card's permapage on Scryfall's website.
+    pub scryfall_uri: Url,
+
+    /// A link to this card object on Scryfall's API.
+    pub uri: Uri<Card>,
+    // ==========================
+    // endregion Core Card Fields
+    //
+    // region Gameplay Fields
+    // ======================
+    /// If this card is closely related to other cards, this property will be an
+    /// array with Related Card Objects.
+    pub all_parts: Option<Vec<RelatedCard>>,
+
+    /// An array of Card Face objects, if this card is multifaced.
+    pub card_faces: Option<Vec<CardFace>>,
+
+    /// This card's color identity.
+    pub color_identity: Vec<Color>,
+
+    /// This card's overall rank/popularity on EDHREC. Not all cards are ranked.
+    pub edhrec_rank: Option<usize>,
+
+    /// True if this printing exists in a foil version.
+    pub foil: bool,
+
+    /// An array of keywords that this card uses, such as 'Flying' and
+    /// 'Cumulative upkeep'.
+    pub keywords: Vec<String>,
+
+    /// A code for this card's layout.
+    pub layout: Layout,
+
+    /// An object describing the legality of this card across play formats.
+    /// Possible legalities are legal, not_legal, restricted, and banned.
+    pub legalities: HashMap<Format, Legality>,
+
+    /// The name of this card. If this card has multiple faces, this field will
+    /// contain both names separated by ` // `.
+    pub name: String,
+
+    /// True if this printing exists in a nonfoil version.
+    pub nonfoil: bool,
+
+    /// True if this card is oversized.
+    pub oversized: bool,
+
+    /// True if this card is on the Reserved List.
+    pub reserved: bool,
+
+    // =========================
+    // endregion Gameplay Fields
+    //
+    // region Print Fields
+    // ===================
+    /// The name of the illustrator of this card. Newly spoiled cards may not
+    /// have this field yet.
+    pub artist: Option<String>,
+
+    /// Whether this card is found in boosters.
+    pub booster: bool,
+
+    /// This card's border color: black, borderless, gold, silver, or white.
+    pub border_color: BorderColor,
+
+    /// The Scryfall ID for the card back design present on this card.
+    pub card_back_id: Option<Uuid>,
+
+    /// This card's collector number. Note that collector numbers can contain
+    /// non-numeric characters, such as letters or `★`.
+    pub collector_number: String,
+
+    /// True if you should consider avoiding use of this print downstream.
+    #[serde(default)]
+    pub content_warning: bool,
+
+    /// True if this card was only released in a video game.
+    pub digital: bool,
+
+    /// The just-for-fun name printed on the card (such as for Godzilla series
+    /// cards).
+    pub flavor_name: Option<String>,
+
+    /// The flavor text, if any.
+    pub flavor_text: Option<String>,
+
+    /// This card's frame effects, if any.
+    #[serde(default)]
+    pub frame_effects: Vec<FrameEffect>,
+
+    /// This card's frame layout.
+    pub frame: Frame,
+
+    /// True if this card's artwork is larger than normal.
+    pub full_art: bool,
+
+    /// A list of games that this card print is available in, paper, arena,
+    /// and/or mtgo.
+    pub games: Vec<Game>,
+
+    /// True if this card's imagery is high resolution.
+    pub highres_image: bool,
+
+    /// A unique identifier for the card artwork that remains consistent across
+    /// reprints. Newly spoiled cards may not have this field yet.
+    pub illustration_id: Option<Uuid>,
+
+    /// An object listing available imagery for this card. See the [Card Imagery](https://scryfall.com/docs/api/images) article for more information.
+    #[serde(default)]
+    pub image_uris: HashMap<String, Url>,
+
+    /// An object containing daily price information for this card, including
+    /// `usd`, `usd_foil`, `eur`, and `tix` prices, as strings.
+    #[serde(default)]
+    pub prices: Price,
+
+    /// The localized name printed on this card, if any.
+    pub printed_name: Option<String>,
+
+    /// The localized text printed on this card, if any.
+    pub printed_text: Option<String>,
+
+    /// The localized type line printed on this card, if any.
+    pub printed_type_line: Option<String>,
+
+    /// True if this card is a promotional print.
+    pub promo: bool,
+
+    // TODO(msmorgan): PurchaseUris struct?
+    /// An object providing URIs to this card's listing on major marketplaces.
+    #[serde(default)]
+    pub purchase_uris: HashMap<String, String>,
+
+    /// This card's rarity. One of `common`, `uncommon`, `rare`, or `mythic`.
+    pub rarity: Rarity,
+
+    // TODO(msmorgan): RelatedUris struct?
+    /// An object providing URIs to this card's listing on other Magic: The
+    /// Gathering online resources.
+    pub related_uris: HashMap<String, String>,
+
+    /// The date this card was first released.
+    pub released_at: NaiveDate,
+
+    /// True if this card is a reprint.
+    pub reprint: bool,
+
+    /// A link to this card's set on Scryfall's website.
+    pub scryfall_set_uri: String,
+
+    /// This card's full set name.
+    pub set_name: String,
+
+    /// A link to where you can begin paginating this card's set on the Scryfall
+    /// API.
+    pub set_search_uri: Uri<List<Card>>,
+
+    /// The type of set this printing is in.
+    pub set_type: SetType,
+
+    /// A link to this card's set object on Scryfall's API.
+    pub set_uri: Uri<Set>,
+
+    /// This card's set code.
+    pub set: SetCode,
+
+    /// True if this card is a Story Spotlight.
+    pub story_spotlight: bool,
+
+    /// True if the card is printed without text.
+    pub textless: bool,
+
+    /// Whether this card is a variation of another printing.
+    pub variation: bool,
+
+    /// The printing ID of the printing this card is a variation of.
+    pub variation_of: Option<Uuid>,
+
+    /// This card's watermark, if any.
+    pub watermark: Option<String>,
+
+    /// Information about when and where the card was originally previewed.
+    #[serde(default)]
+    pub preview: Preview,
+    // ======================
+    // endregion Print Fields
 }
 
 impl Card {
@@ -358,7 +627,13 @@ impl Card {
     /// # use scryfall::card::Card;
     /// # fn main() -> scryfall::Result<()> {
     /// let card = Card::random()?;
-    /// println!("{}", &card.name);
+    /// println!(
+    ///     "{}",
+    ///     &match card {
+    ///         Card::OracleCard(card) => card.name,
+    ///         Card::ReversibleCard(card) => card.name,
+    ///     }
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -371,19 +646,24 @@ impl Card {
     /// # Examples
     /// ```rust
     /// use scryfall::card::Card;
-    /// assert!(
-    ///     Card::search("lightning")
-    ///         .unwrap()
-    ///         .map(Result::unwrap)
-    ///         .all(|x| x.name.to_lowercase().contains("lightning"))
-    /// )
+    /// assert!(Card::search("lightning")
+    ///     .unwrap()
+    ///     .filter_map(|c| match c {
+    ///         Ok(Card::OracleCard(c)) => Some(c),
+    ///         _ => None,
+    ///     })
+    ///     .all(|x| x.name.to_lowercase().contains("lightning")))
     /// ```
     ///
     /// ```rust
     /// # use scryfall::search::prelude::*;
     /// # fn main() -> scryfall::Result<()> {
     /// use scryfall::Card;
-    /// let mut demolish = Card::search(set("war").and(collector_number(123)))?.map(Result::unwrap);
+    /// let mut demolish =
+    ///     Card::search(set("war").and(collector_number(123)))?.filter_map(|c| match c {
+    ///         Ok(Card::OracleCard(c)) => Some(c),
+    ///         _ => None,
+    ///     });
     /// assert!(demolish.all(|card| &card.name == "Demolish"));
     /// # Ok(())
     /// # }
@@ -416,7 +696,10 @@ impl Card {
     /// use scryfall::search::prelude::*;
     /// use scryfall::Card;
     /// let all_six_sixes = Card::search_all(power(6).and(toughness(6)))?;
-    /// assert!(all_six_sixes.iter().any(|c| &c.name == "Colossal Dreadmaw"));
+    /// assert!(all_six_sixes.iter().any(|c| match c {
+    ///     Card::OracleCard(c) => &c.name == "Colossal Dreadmaw",
+    ///     _ => false,
+    /// }));
     /// # Ok(())
     /// # }
     /// ```
@@ -432,7 +715,7 @@ impl Card {
     /// ```rust
     /// # use scryfall::Card;
     /// # fn main() -> scryfall::Result<()> {
-    /// let card = Card::search_random("t:Merfolk")?;
+    /// let Card::OracleCard(card) = Card::search_random("t:Merfolk")? else { panic!("not an oracle card") };
     /// assert!(card.type_line.contains("Merfolk"));
     /// # Ok(())
     /// # }
@@ -449,8 +732,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::named("Lightning Bolt") {
-    ///     Ok(card) => assert_eq!(card.name, "Lightning Bolt"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Lightning Bolt"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     ///
@@ -471,8 +755,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::named_fuzzy("Light Bolt") {
-    ///     Ok(card) => assert_eq!(card.name, "Lightning Bolt"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Lightning Bolt"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn named_fuzzy(query: &str) -> crate::Result<Card> {
@@ -487,8 +772,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::set_and_number("vma", 4) {
-    ///     Ok(card) => assert_eq!(card.name, "Black Lotus"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Black Lotus"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn set_and_number(set_code: &str, number: usize) -> crate::Result<Card> {
@@ -501,8 +787,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::multiverse(409574) {
-    ///     Ok(card) => assert_eq!(card.name, "Strip Mine"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Strip Mine"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn multiverse(multiverse_id: usize) -> crate::Result<Card> {
@@ -520,8 +807,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::mtgo(54957) {
-    ///     Ok(card) => assert_eq!(card.name, "Ghost Quarter"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Ghost Quarter"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn mtgo(mtgo_id: usize) -> crate::Result<Card> {
@@ -534,8 +822,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::arena(67330) {
-    ///     Ok(card) => assert_eq!(card.name, "Yargle, Glutton of Urborg"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Yargle, Glutton of Urborg"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn arena(arena_id: usize) -> crate::Result<Card> {
@@ -548,8 +837,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::tcgplayer(67330) {
-    ///     Ok(card) => assert_eq!(card.name, "Fathom Mage"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Fathom Mage"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn tcgplayer(tcgplayer_id: usize) -> crate::Result<Card> {
@@ -567,8 +857,9 @@ impl Card {
     /// ```rust
     /// use scryfall::card::Card;
     /// match Card::scryfall_id("0b81b329-4ef5-4b55-9fe7-9ed69477e96b".parse().unwrap()) {
-    ///     Ok(card) => assert_eq!(card.name, "Cowed by Wisdom"),
+    ///     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Cowed by Wisdom"),
     ///     Err(e) => panic!("{:?}", e),
+    ///     _ => panic!("not an oracle card"),
     /// }
     /// ```
     pub fn scryfall_id(scryfall_id: Uuid) -> crate::Result<Card> {

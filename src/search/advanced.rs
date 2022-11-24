@@ -123,7 +123,7 @@ impl SearchOptions {
     }
 }
 
-/// The unique parameter specifies if Scryfall should remove “duplicate” results
+/// The unique parameter specifies if Scryfall should remove "duplicate" results
 /// in your query.
 #[derive(Serialize, Copy, Clone, Eq, PartialEq, Hash, Debug)]
 #[serde(rename_all = "lowercase")]

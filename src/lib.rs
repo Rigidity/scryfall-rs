@@ -12,8 +12,9 @@
 //! ```rust,no_run
 //! use scryfall::card::Card;
 //! match Card::named_fuzzy("Light Bolt") {
-//!     Ok(card) => assert_eq!(card.name, "Lightning Bolt"),
-//!     Err(e) => panic!(format!("{:?}", e))
+//!     Ok(Card::OracleCard(card)) => assert_eq!(card.name, "Lightning Bolt"),
+//!     Err(e) => panic!(format!("{:?}", e)),
+//!     _ => panic!("not an oracle card"),
 //! }
 //! ```
 //!

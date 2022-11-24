@@ -49,7 +49,7 @@ use crate::util::BULK_DATA_URL;
 ///   likely be sufficient.
 /// * Every card type in every product is included, including planar cards,
 ///   schemes, Vanguard cards, tokens, emblems, and funny cards. Make sure
-///   you’ve reviewed documentation for the Card type.
+///   you've reviewed documentation for the Card type.
 ///
 ///
 /// Bulk data is only collected once every 12 hours. You can use the card API

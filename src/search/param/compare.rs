@@ -22,7 +22,17 @@ use crate::search::param::Param;
 /// ```rust
 /// # use scryfall::search::prelude::*;
 /// let query = cmc(gte(5)).and(type_line("planeswalker"));
-/// let card = query.random().unwrap();
+/// let card = query
+///     .random()
+///     .map(|c| match c {
+///         Card::OracleCard(c) => Some(c),
+///         _ => None,
+///     })
+///     .unwrap()
+///     .unwrap();
+///
+/// assert!(card.cmc as u32 >= 5);
+/// assert!(card.type_line.to_lowercase().contains("planeswalker"));
 ///
 /// assert!(card.cmc as u32 >= 5);
 /// assert!(card.type_line.to_lowercase().contains("planeswalker"));

@@ -11,7 +11,7 @@ use crate::uri::Uri;
 /// For more information, refer to the [official docs](https://scryfall.com/api/cards#related-card-objects).
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct RelatedCard {
-    /// An unique ID for this card in Scryfall’s database.
+    /// An unique ID for this card in Scryfall's database.
     pub id: Uuid,
 
     /// A content type for this object, always related_card.
